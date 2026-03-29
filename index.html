@@ -3,109 +3,99 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Via-OS — LogicHub</title>
+<title>ViaOS</title>
 
 <style>
 
 body{
-  margin:0;
-  font-family:system-ui;
-  background:#030508;
-  color:#d4dce8;
-  overflow:hidden;
+margin:0;
+background:#030508;
+color:#e5e7eb;
+font-family:system-ui;
+overflow:hidden;
 }
 
-/* desktop */
+/* top bar */
 
-#desktop{
-  position:absolute;
-  inset:0;
+#topbar{
+position:fixed;
+top:0;
+left:0;
+right:0;
+height:32px;
+background:#05070c;
+border-bottom:1px solid #1e293b;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 10px;
+font-size:13px;
 }
 
 /* launcher */
 
 #launcher{
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  display:flex;
-  gap:10px;
-  padding:10px 14px;
-  background:#080d1a;
-  border:1px solid #1e3060;
-  border-radius:14px;
+position:fixed;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:8px;
+background:#0b0f18;
+border:1px solid #1e293b;
+padding:10px;
+border-radius:10px;
 }
 
 .launcher-btn{
-  background:#0f172a;
-  border:1px solid #1e3060;
-  color:#d4dce8;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
+background:#111827;
+border:1px solid #1e293b;
+color:white;
+padding:8px 12px;
+border-radius:6px;
+cursor:pointer;
 }
 
 .launcher-btn:hover{
-  background:#111827;
+background:#1f2937;
 }
 
-/* window manager container */
+/* window manager */
 
 #window-manager{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
+position:absolute;
+inset:0;
+pointer-events:none;
 }
 
+/* window */
+
 .os-window{
-  position:absolute;
-  width:640px;
-  height:420px;
-  background:#0b0f18;
-  border:1px solid #1e2a40;
-  border-radius:8px;
-  pointer-events:auto;
-  box-shadow:0 10px 40px rgba(0,0,0,0.6);
+position:absolute;
+width:640px;
+height:420px;
+background:#0b0f18;
+border:1px solid #1e293b;
+border-radius:8px;
+box-shadow:0 15px 40px rgba(0,0,0,.6);
+pointer-events:auto;
 }
 
 .window-header{
-  background:#111827;
-  height:30px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0 10px;
-  font-size:13px;
-  cursor:move;
+height:32px;
+background:#111827;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 10px;
+cursor:move;
+font-size:13px;
 }
 
 .window-frame{
-  width:100%;
-  height:calc(100% - 30px);
-  border:none;
-}
-
-/* status bar */
-
-#status{
-  position:fixed;
-  top:0;
-  left:0;
-  right:0;
-  height:30px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 12px;
-  background:#05070c;
-  border-bottom:1px solid #152240;
-  font-size:12px;
-}
-
-#brand{
-  font-weight:700;
+width:100%;
+height:calc(100% - 32px);
+border:none;
 }
 
 </style>
@@ -113,89 +103,55 @@ body{
 
 <body>
 
-<div id="status">
-
-<div id="brand">
-ViaOS · LogicHub
+<div id="topbar">
+<div>ViaOS</div>
+<div id="clock"></div>
 </div>
-
-<div id="time"></div>
-
-</div>
-
-
-<div id="desktop"></div>
-
 
 <div id="window-manager"></div>
 
-
 <div id="launcher">
 
-<button class="launcher-btn" onclick="openTool('decision-core','decision-matrix')">
+<button class="launcher-btn"
+onclick="openTool('decision-core','decision-matrix')">
 Decision Matrix
 </button>
 
-<button class="launcher-btn" onclick="openTool('creator-studio','promptalchemy')">
+<button class="launcher-btn"
+onclick="openTool('creator-studio','promptalchemy')">
 PromptAlchemy
 </button>
 
-<button class="launcher-btn" onclick="openTool('analytics-bay','json-formatter')">
+<button class="launcher-btn"
+onclick="openTool('analytics-bay','json-formatter')">
 JSON Formatter
 </button>
 
-<button class="launcher-btn" onclick="openTool('game-arena','vialogic')">
+<button class="launcher-btn"
+onclick="openTool('game-arena','vialogic')">
 ViaLogic
 </button>
 
 </div>
 
-
 <script src="./scripts/window-manager.js"></script>
 <script src="./scripts/spatial-engine.js"></script>
-
 
 <script>
 
 function openTool(zone,tool){
-  if(window.WM){
-    window.WM.openTool(zone,tool)
-  }
+window.WM.openTool(zone,tool)
 }
 
-
-/* clock */
-
-function updateClock(){
-
-  const now=new Date()
-
-  const t=
-  now.getHours().toString().padStart(2,"0")+":"+
-  now.getMinutes().toString().padStart(2,"0")
-
-  document.getElementById("time").textContent=t
+function clock(){
+const n=new Date()
+document.getElementById("clock").textContent=
+n.getHours().toString().padStart(2,"0")+":"+
+n.getMinutes().toString().padStart(2,"0")
 }
 
-setInterval(updateClock,1000)
-updateClock()
-
-
-/* basic spatial example */
-
-if(window.SpatialEngine){
-
-  SpatialEngine.registerNode("login",{
-    type:"auth"
-  })
-
-  SpatialEngine.registerNode("db",{
-    type:"database"
-  })
-
-  SpatialEngine.connectNodes("login","db")
-
-}
+setInterval(clock,1000)
+clock()
 
 </script>
 
