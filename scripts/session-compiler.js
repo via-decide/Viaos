@@ -19,10 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Track every subsequent room visited
 window.addEventListener('os:node_changed', (e) => {
-  const { title, x, y, z } = e.detail;
+  const { title, seed, z } = e.detail;
   sessionLog.push({
     room: title || "Uncharted",
-    time: new Date().toLocaleTimeString()
+    time: new Date().toLocaleTimeString(),
+    pattern: seed || "SYSTEM_ASCENT"
   });
 });
 
@@ -60,8 +61,8 @@ function compileAndPrint() {
   const logItems = sessionLog.map((entry, i) =>
     `<li>
       <span class="log-index">${String(i + 1).padStart(2, '0')}</span>
-      <strong>${entry.title}</strong>
-      <span class="log-time">&nbsp;—&nbsp;${entry.timestamp}</span>
+      <strong>${entry.room}</strong>
+      <span class="log-time" style="font-size: 11px; margin-left: 8px;">[ SIGIL: ${entry.pattern || '0,0'} ]  —  ${entry.time}</span>
     </li>`
   ).join('');
 
@@ -94,12 +95,14 @@ function compileAndPrint() {
     zone.innerHTML = '';
 
     if (window.OS) {
-      window.OS.teleportTo(0, 0, 0);
+      // Return to [0,0] core pattern
+      window.dispatchEvent(new CustomEvent('os:pattern_locked', { detail: { seed: '0,0' } }));
     }
 
     sessionLog = [{
       room: 'Galaxy Center',
-      time: new Date().toLocaleTimeString()
+      time: new Date().toLocaleTimeString(),
+      pattern: '0,0'
     }];
   };
 

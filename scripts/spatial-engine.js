@@ -15,32 +15,37 @@ class ProceduralRoomEngine {
     this.descriptors = ["Classified operations", "Automated drone bay", "Abandoned data sector", "High-security vault", "Processing relay", "Dormant server farm"];
   }
 
-  getRoom(x, y, z) {
-    if (x === 0 && y === 0 && z === 0) {
-      return { title: 'Galaxy Center', desc: 'The main nexus.' };
+  getRoom(seed, overrideZ = null) {
+    if (!seed || seed === '0,0' || seed === 'center' || seed === '0') {
+      return { title: 'Galaxy Center', desc: 'The main nexus.', z: overrideZ !== null ? overrideZ : 0 };
     }
 
-    const hash = Math.abs(x * 13 + y * 31 + z * 17);
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    hash = Math.abs(hash);
     
     const sector = this.sectors[hash % this.sectors.length];
     const dept = this.departments[(hash * 7) % this.departments.length];
     const desc = this.descriptors[(hash * 11) % this.descriptors.length];
 
+    // Z depth derived from pattern complexity (length) if not overridden
+    let z = overrideZ;
+    if (z === null) {
+      z = 0;
+      if (seed.length > 20) z = -99;
+      else if (seed.length > 14) z = -10;
+      else if (seed.length > 7) z = -1;
+    }
+
     if (z === 0) {
-      return { 
-        title: `${sector} ${dept}`, 
-        desc: `Surface Level: ${desc}` 
-      };
+      return { title: `${sector} ${dept}`, desc: `Surface Level: ${desc}`, z };
     } else if (z < 0) {
-      return { 
-        title: `${sector} ${dept} // Sub-Level ${Math.abs(z)}`, 
-        desc: `Deep Storage: ${desc}` 
-      };
+      return { title: `${sector} ${dept} // Sub-Level ${Math.abs(z)}`, desc: `Deep Storage: ${desc}`, z };
     } else {
-      return { 
-        title: `${sector} ${dept} // Tower ${z}`, 
-        desc: `Atmospheric: ${desc}` 
-      };
+      return { title: `${sector} ${dept} // Tower ${z}`, desc: `Atmospheric: ${desc}`, z };
     }
   }
 }
@@ -48,206 +53,75 @@ class ProceduralRoomEngine {
 const RoomMatrix = new ProceduralRoomEngine();
 
 // =============================================================================
-// GESTURE INTERCEPTOR — 8-Way Angular Logic
-// =============================================================================
-class GestureInterceptor {
-  constructor(onSwipe) {
-    this.onSwipe = onSwipe;
-    this.startX = 0;
-    this.startY = 0;
-    this.startTime = 0;
-    this.isTracking = false;
-
-    this.SWIPE_THRESHOLD = 40; // px
-    this.SWIPE_TIME_MAX = 800; // ms
-
-    this.bindListeners();
-  }
-
-  bindListeners() {
-    document.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
-    // Use pointer events for modern consistency same as Mars
-    document.addEventListener('pointerup', (e) => this.handlePointerUp(e), { passive: true });
-    document.addEventListener('pointerdown', (e) => this.handlePointerDown(e), { passive: true });
-  }
-
-  isScrollableElement(target) {
-    return target.closest('.scroll-area, canvas, [data-no-swipe], #btn-conclude-mission') !== null;
-  }
-
-  handlePointerDown(e) {
-    if (this.isScrollableElement(e.target)) { this.isTracking = false; return; }
-    this.startX = e.clientX;
-    this.startY = e.clientY;
-    this.startTime = Date.now();
-    this.isTracking = true;
-  }
-
-  handleTouchStart(e) {
-    // Legacy support
-    if (e.touches.length > 1) return;
-    this.startX = e.touches[0].clientX;
-    this.startY = e.touches[0].clientY;
-    this.startTime = Date.now();
-    this.isTracking = true;
-  }
-
-  handlePointerUp(e) {
-    if (!this.isTracking) return;
-    this.isTracking = false;
-
-    const dx = e.clientX - this.startX;
-    const dy = e.clientY - this.startY;
-    const duration = Date.now() - this.startTime;
-
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance < this.SWIPE_THRESHOLD || duration > this.SWIPE_TIME_MAX) return;
-
-    // Angle-based 8-way segmentation (0 to 360)
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-    let dir = '';
-
-    // E: East, S: South, W: West, N: North, etc.
-    if (angle >= -22.5 && angle < 22.5) dir = 'E';
-    else if (angle >= 22.5 && angle < 67.5) dir = 'SE';
-    else if (angle >= 67.5 && angle < 112.5) dir = 'S';
-    else if (angle >= 112.5 && angle < 157.5) dir = 'SW';
-    else if (angle >= 157.5 || angle < -157.5) dir = 'W';
-    else if (angle >= -157.5 && angle < -112.5) dir = 'NW';
-    else if (angle >= -112.5 && angle < -67.5) dir = 'N';
-    else if (angle >= -67.5 && angle < -22.5) dir = 'NE';
-
-    if (dir) {
-      this.onSwipe(dir);
-    }
-  }
-}
-
-// =============================================================================
-// SPATIAL MATRIX — 8-Way Navigation Engine
+// SPATIAL MATRIX — Warp Gate Engine
 // =============================================================================
 class SpatialMatrix {
   constructor() {
     this.canvas    = document.getElementById('spatial-canvas');
-    this.minimap   = document.getElementById('os-minimap');
     this.roomName  = document.getElementById('hud-room-name');
     this.roomDesc  = document.getElementById('hud-room-desc');
 
     // 3D global OS state
-    this.currentX = 0;
-    this.currentY = 0;
+    this.currentSeed = '0,0';
     this.currentZ = 0;
 
-    this.initMinimap();
-    this.setupGestureInterceptor();
-    this.updateCamera();
-    this.updateHUD();
-    this.ensureDiscoveryNodes(); // Populates initial content
-    this.attachMinimapListener();
+    this.ensureNodeExists(); // Populates initial content
     this.attachDelegatedListeners();
+    this.attachWarpListener();
+    this.updateHUD(RoomMatrix.getRoom(this.currentSeed, this.currentZ));
   }
 
-  getRoomKey(x, y, z) {
-    return `${x},${y},${z}`;
-  }
-
-  getRoomAt(x, y, z) {
-    return RoomMatrix.getRoom(x, y, z);
-  }
-
-  getCurrentRoom() {
-    return this.getRoomAt(this.currentX, this.currentY, this.currentZ);
-  }
-
-  initMinimap() {
-    this.minimap.innerHTML = '';
-    for (let y = -1; y <= 1; y++) {
-      for (let x = -1; x <= 1; x++) {
-        const dot = document.createElement('div');
-        dot.className = 'hud-dot';
-        dot.setAttribute('data-x', x);
-        dot.setAttribute('data-y', y);
-        if (x === this.currentX && y === this.currentY) dot.classList.add('active');
-        this.minimap.appendChild(dot);
+  attachWarpListener() {
+    window.addEventListener('os:pattern_locked', (e) => {
+      if (e.detail && e.detail.seed) {
+        this.handleWarpGate(e.detail.seed);
       }
-    }
+    });
   }
 
-  setupGestureInterceptor() {
-    this.interceptor = new GestureInterceptor((dir) => this.handleDirectionalSwipe(dir));
+  async handleWarpGate(seed) {
+    this.currentSeed = seed;
+    const room = RoomMatrix.getRoom(seed);
+    this.currentZ = room.z;
+
+    // Phase 1: Warp out
+    this.centerNode.classList.add('warp-transition', 'warp-out');
+    
+    await new Promise(r => setTimeout(r, 400));
+    
+    // Phase 2: Inject remote data
+    this.updateHUD(room);
+    this.renderNodeContent(this.centerNode, this.currentSeed, this.currentZ);
+
+    // Phase 3: Settle with flash
+    this.centerNode.classList.remove('warp-out');
+    this.centerNode.classList.add('warp-in');
+    
+    await new Promise(r => setTimeout(r, 600));
+    this.centerNode.classList.remove('warp-transition', 'warp-in');
+
+    this.dispatchNodeChanged(room);
   }
 
-  handleDirectionalSwipe(dir) {
-    let moveX = 0;
-    let moveY = 0;
-
-    // Map 8 directions to coordinate shifts
-    switch(dir) {
-      case 'N':  moveY = -1; break;
-      case 'S':  moveY = 1;  break;
-      case 'W':  moveX = 1;  break;
-      case 'E':  moveX = -1; break;
-      case 'NW': moveX = 1;  moveY = -1; break;
-      case 'NE': moveX = -1; moveY = -1; break;
-      case 'SW': moveX = 1;  moveY = 1;  break;
-      case 'SE': moveX = -1; moveY = 1;  break;
-    }
-
-    this.requestMove(moveX, moveY);
-  }
-
-  requestMove(moveX, moveY) {
-    const tx = this.currentX + moveX;
-    const ty = this.currentY + moveY;
-
-    // Procedural engine guarantees a room exists at any coordinate
-    if (this.getRoomAt(tx, ty, this.currentZ)) {
-      this.currentX = tx;
-      this.currentY = ty;
-      
-      // Infinite DOM scaling — ensure node exists visually
-      this.ensureNodeExists(this.currentX, this.currentY);
-      
-      this.updateCamera();
-      this.updateHUD();
-      this.dispatchNodeChanged();
-    }
-  }
-
-  teleportTo(x, y, z) {
-    if (!this.getRoomAt(x, y, z)) return;
-    this.currentX = x;
-    this.currentY = y;
-    this.currentZ = z;
-    this.ensureDiscoveryNodes();
-    this.updateCamera();
-    this.updateHUD();
-    this.dispatchNodeChanged();
-  }
-
-  updateCamera() {
-    const tx = (this.currentX * 100) - 100;
-    const ty = (this.currentY * -100) - 100;
-    // Zoom removed for discovery focus
-    this.canvas.style.transform = `translate3d(calc(${tx}vw), calc(${ty}vh), 0) scale(1.0)`;
-  }
-
-  updateHUD() {
-    const room = this.getCurrentRoom();
+  updateHUD(room) {
     if (!room) return;
     if (this.roomName) this.roomName.textContent = room.title;
     if (this.roomDesc) this.roomDesc.textContent = room.desc;
   }
 
-  renderNodeContent(node, x, y, z) {
-    const room = this.getRoomAt(x, y, z);
+  renderNodeContent(node, seed, z) {
+    const room = RoomMatrix.getRoom(seed, z);
     if (!room) return;
 
-    // Build standard structure
-    let html = `<h2>${room.title}</h2><div class="node-grid">`;
+    let html = `<h2>${room.title}</h2><div id="room-environment" class="node-grid">`;
 
-    // Calculate deterministic logic hash
-    const hash = Math.abs(x * 13 + y * 31 + z * 17);
+    // hash to generate dummy nodes based on seed
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    hash = Math.abs(hash);
     
     // Always provide ascend/descend nodes based on formal spec rules
     if (z <= 0) {
@@ -270,40 +144,18 @@ class SpatialMatrix {
     node.innerHTML = html;
   }
 
-  ensureNodeExists(x, y) {
-    let node = document.querySelector(`.os-node[data-x="${x}"][data-y="${y}"]`);
-    if (!node) {
-      node = document.createElement('div');
-      node.className = 'os-node discovery-node';
-      node.setAttribute('data-x', x);
-      node.setAttribute('data-y', y);
-      
-      const top = 100 + (y * 100);
-      const left = 100 + (x * 100);
-      
-      node.style.top = `${top}vh`;
-      node.style.left = `${left}vw`;
-      this.canvas.appendChild(node);
-    }
-    // Always render appropriate procedural content tailored to current Z
-    this.renderNodeContent(node, x, y, this.currentZ);
+  ensureNodeExists() {
+    this.canvas.innerHTML = '';
+    this.centerNode = document.createElement('div');
+    this.centerNode.className = 'os-node discovery-node centered';
+    this.canvas.appendChild(this.centerNode);
+    this.renderNodeContent(this.centerNode, this.currentSeed, this.currentZ);
   }
 
-  ensureDiscoveryNodes() {
-    // Generate initial ring around Lobby to ensure immediate visual context
-    for (let y = -1; y <= 1; y++) {
-      for (let x = -1; x <= 1; x++) {
-        this.ensureNodeExists(x, y);
-      }
-    }
-  }
-
-  dispatchNodeChanged() {
-    const room = this.getCurrentRoom();
+  dispatchNodeChanged(room) {
     window.dispatchEvent(new CustomEvent('os:node_changed', {
       detail: { 
-        x: this.currentX, 
-        y: this.currentY, 
+        seed: this.currentSeed,
         z: this.currentZ, 
         title: room ? room.title : 'Uncharted Sector' 
       }
@@ -324,7 +176,8 @@ class SpatialMatrix {
 
   async changeFloor(delta) {
     const targetZ = this.currentZ + delta;
-    if (!this.getRoomAt(this.currentX, this.currentY, targetZ)) return;
+    const room = RoomMatrix.getRoom(this.currentSeed, targetZ);
+    if (!room) return;
 
     // Transition: scale up (dive in) or scale down (return)
     const direction = delta > 0 ? 'ascend' : 'descend';
@@ -338,46 +191,24 @@ class SpatialMatrix {
 
     // Phase 2: Swap content & render depth
     this.currentZ = targetZ;
-    this.updateHUD();
+    this.updateHUD(room);
     
-    // Re-render ALL visible node content for new Z depth before arriving
-    document.querySelectorAll('.os-node').forEach(node => {
-      const nx = parseInt(node.getAttribute('data-x'));
-      const ny = parseInt(node.getAttribute('data-y'));
-      this.renderNodeContent(node, nx, ny, this.currentZ);
-    });
+    // Re-render centralized node
+    this.renderNodeContent(this.centerNode, this.currentSeed, this.currentZ);
 
     // Position for "arrival"
-    this.canvas.style.transition = 'none';
-    this.canvas.style.transform = `translate3d(calc(${(this.currentX * 100) - 100}vw), calc(${(this.currentY * -100) - 100}vh), 0) ${delta < 0 ? 'scale(0.5)' : 'scale(1.5)'}`;
+    this.centerNode.style.transition = 'none';
+    this.centerNode.style.transform = `scale(${delta < 0 ? 0.5 : 1.5})`;
     
     // Phase 3: Settle in
     requestAnimationFrame(() => {
-      this.canvas.style.transition = 'transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s ease';
-      this.canvas.style.opacity = '1';
-      this.canvas.style.transform = `translate3d(calc(${(this.currentX * 100) - 100}vw), calc(${(this.currentY * -100) - 100}vh), 0) scale(1.0)`;
+      this.centerNode.style.transition = 'transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s ease';
+      this.centerNode.style.opacity = '1';
+      this.centerNode.style.transform = `scale(1.0)`;
     });
 
-    this.dispatchNodeChanged();
+    this.dispatchNodeChanged(room);
     window.dispatchEvent(new CustomEvent('os:floor_changed', { detail: { z: this.currentZ } }));
-  }
-
-  triggerResistance() {
-    const tx = (this.currentX * 100) - 100;
-    const ty = (this.currentY * -100) - 100;
-    this.canvas.style.transform = `translate3d(calc(${tx - 2}vw), calc(${ty - 2}vh), 0) scale(1.0)`;
-    setTimeout(() => {
-      this.canvas.style.transform = `translate3d(calc(${tx}vw), calc(${ty}vh), 0) scale(1.0)`;
-    }, 150);
-  }
-
-  attachMinimapListener() {
-    window.addEventListener('os:node_changed', (event) => {
-      const { x, y } = event.detail;
-      this.minimap.querySelectorAll('.hud-dot').forEach(dot => dot.classList.remove('active'));
-      const activeDot = this.minimap.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-      if (activeDot) activeDot.classList.add('active');
-    });
   }
 }
 
