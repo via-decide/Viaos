@@ -132,8 +132,6 @@ class SpatialMatrix {
     this.minimap   = document.getElementById('os-minimap');
     this.roomName  = document.getElementById('hud-room-name');
     this.roomDesc  = document.getElementById('hud-room-desc');
-    this.btnDescend = document.getElementById('btn-descend');
-    this.btnAscend  = document.getElementById('btn-ascend');
 
     // 3D global OS state
     this.currentX = 0;
@@ -144,13 +142,9 @@ class SpatialMatrix {
     this.setupGestureInterceptor();
     this.updateCamera();
     this.updateHUD();
-    this.updateAllNodeLabels();
+    this.ensureDiscoveryNodes(); // Populates initial content
     this.attachMinimapListener();
-    this.attachZButtonListeners();
-    this.checkZAxis();
-    
-    // Auto-spawn nodes for discovery (mock for v3)
-    this.ensureDiscoveryNodes();
+    this.attachDelegatedListeners();
   }
 
   getRoomKey(x, y, z) {
@@ -216,8 +210,6 @@ class SpatialMatrix {
       
       this.updateCamera();
       this.updateHUD();
-      this.updateAllNodeLabels();
-      this.checkZAxis(); // Update elevator buttons
       this.dispatchNodeChanged();
     }
   }
@@ -227,9 +219,9 @@ class SpatialMatrix {
     this.currentX = x;
     this.currentY = y;
     this.currentZ = z;
+    this.ensureDiscoveryNodes();
     this.updateCamera();
     this.updateHUD();
-    this.updateAllNodeLabels();
     this.dispatchNodeChanged();
   }
 
@@ -247,26 +239,45 @@ class SpatialMatrix {
     if (this.roomDesc) this.roomDesc.textContent = room.desc;
   }
 
-  updateAllNodeLabels() {
-    document.querySelectorAll('.os-node').forEach(node => {
-      const nx = parseInt(node.getAttribute('data-x'));
-      const ny = parseInt(node.getAttribute('data-y'));
-      const room = this.getRoomAt(nx, ny, this.currentZ);
-      const h2 = node.querySelector('h2');
-      if (h2 && room) h2.textContent = room.title;
-    });
+  renderNodeContent(node, x, y, z) {
+    const room = this.getRoomAt(x, y, z);
+    if (!room) return;
+
+    // Build standard structure
+    let html = `<h2>${room.title}</h2><div class="node-grid">`;
+
+    // Calculate deterministic logic hash
+    const hash = Math.abs(x * 13 + y * 31 + z * 17);
+    
+    // Always provide ascend/descend nodes based on formal spec rules
+    if (z <= 0) {
+      html += `<button class="access-node depth-descend" data-delta="-1">[ DECRYPT : SUB-LEVEL ${Math.abs(z - 1)} ]</button>`;
+    }
+    if (z < 0) {
+      html += `<button class="access-node depth-ascend" data-delta="1">[ AIRLOCK : RETURN TO Z-${z + 1} ]</button>`;
+    }
+
+    // Add dummy active nodes to make the room feel operational (1 to 3)
+    const dummyCount = (hash % 3) + 1;
+    const dummyTasks = ["EXTRACT LOGS", "SYSTEM SCAN", "SYNC TERMINAL", "BYPASS PROTOCOL", "MONITOR FEED", "DIAGNOSTIC"];
+    
+    for (let i = 0; i < dummyCount; i++) {
+        const tIndex = (hash + i * 5) % dummyTasks.length;
+        html += `<button class="access-node dummy-node">[ ${dummyTasks[tIndex]} ]</button>`;
+    }
+
+    html += `</div>`;
+    node.innerHTML = html;
   }
 
   ensureNodeExists(x, y) {
-    const existing = document.querySelector(`.os-node[data-x="${x}"][data-y="${y}"]`);
-    if (!existing) {
-      const node = document.createElement('div');
+    let node = document.querySelector(`.os-node[data-x="${x}"][data-y="${y}"]`);
+    if (!node) {
+      node = document.createElement('div');
       node.className = 'os-node discovery-node';
       node.setAttribute('data-x', x);
       node.setAttribute('data-y', y);
-      node.innerHTML = `<h2>Loading...</h2>`;
       
-      // Calculate dynamic VW/VH position relative to 0,0 center at 100vw, 100vh
       const top = 100 + (y * 100);
       const left = 100 + (x * 100);
       
@@ -274,6 +285,8 @@ class SpatialMatrix {
       node.style.left = `${left}vw`;
       this.canvas.appendChild(node);
     }
+    // Always render appropriate procedural content tailored to current Z
+    this.renderNodeContent(node, x, y, this.currentZ);
   }
 
   ensureDiscoveryNodes() {
@@ -297,23 +310,16 @@ class SpatialMatrix {
     }));
   }
 
-  // ─── Z-AXIS ELEVATOR ────────────────────────────────────────────────────────
+  // ─── Z-AXIS ELEVATOR (INTERACTIVE DEPTH) ────────────────────────────────────
 
-  checkZAxis() {
-    if (!this.btnAscend || !this.btnDescend) return;
-    
-    // In infinite procedural generation, there is always an up and down
-    this.btnAscend.style.display  = 'flex';
-    this.btnDescend.style.display = 'flex';
-  }
-
-  attachZButtonListeners() {
-    if (this.btnAscend) {
-      this.btnAscend.addEventListener('click', () => this.changeFloor(1));
-    }
-    if (this.btnDescend) {
-      this.btnDescend.addEventListener('click', () => this.changeFloor(-1));
-    }
+  attachDelegatedListeners() {
+    this.canvas.addEventListener('click', (e) => {
+      const target = e.target.closest('.depth-ascend, .depth-descend');
+      if (!target) return;
+      
+      const delta = parseInt(target.getAttribute('data-delta'));
+      if (delta) this.changeFloor(delta);
+    });
   }
 
   async changeFloor(delta) {
@@ -330,12 +336,17 @@ class SpatialMatrix {
 
     await new Promise(r => setTimeout(r, 600));
 
-    // Phase 2: Swap content
+    // Phase 2: Swap content & render depth
     this.currentZ = targetZ;
     this.updateHUD();
-    this.updateAllNodeLabels();
-    this.checkZAxis();
     
+    // Re-render ALL visible node content for new Z depth before arriving
+    document.querySelectorAll('.os-node').forEach(node => {
+      const nx = parseInt(node.getAttribute('data-x'));
+      const ny = parseInt(node.getAttribute('data-y'));
+      this.renderNodeContent(node, nx, ny, this.currentZ);
+    });
+
     // Position for "arrival"
     this.canvas.style.transition = 'none';
     this.canvas.style.transform = `translate3d(calc(${(this.currentX * 100) - 100}vw), calc(${(this.currentY * -100) - 100}vh), 0) ${delta < 0 ? 'scale(0.5)' : 'scale(1.5)'}`;
