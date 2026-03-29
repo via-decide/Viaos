@@ -10,7 +10,7 @@
 // Never expose raw coordinate strings to the user.
 // =============================================================================
 const RoomDictionary = {
-  '0,0,0':   { title: 'Galaxy Center',       desc: 'The main nexus of all operations.' },
+  '0,0,0':   { title: 'Main Room',           desc: 'The main nexus of all operations.' },
   '0,-1,0':  { title: 'Observation Deck',    desc: 'Search & Files wing. Sky-level access.' },
   '-1,0,0':  { title: 'Media Vault',         desc: 'Media & Movies archive. Visual immersion bay.' },
   '1,0,0':   { title: 'Simulation Chamber',  desc: 'Games & Logic arena. Reality sandbox.' },
@@ -76,7 +76,7 @@ class GestureInterceptor {
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       if (deltaX < 0) this.onSwipe(-1, 0); else this.onSwipe(1, 0);
     } else {
-      if (deltaY > 0) this.onSwipe(0, -1); else this.onSwipe(0, 1);
+      if (deltaY < 0) this.onSwipe(0, -1); else this.onSwipe(0, 1);
     }
   }
 }

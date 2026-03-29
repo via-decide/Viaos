@@ -11,7 +11,7 @@ let sessionLog = [];
 // Log the initial boot room on load
 document.addEventListener('DOMContentLoaded', () => {
   sessionLog.push({
-    title: 'Galaxy Center',
+    title: 'Main Room',
     timestamp: new Date().toLocaleTimeString(),
     coords: '0,0,0'
   });
@@ -80,11 +80,7 @@ function compileAndPrint() {
 
   zone.style.display = 'block';
 
-  // Small delay to allow the DOM to paint before the print dialog opens
-  setTimeout(() => {
-    window.print();
-
-    // After print dialog closes, tear down and reset to origin
+  const cleanupAfterPrint = () => {
     zone.style.display = 'none';
     zone.innerHTML = '';
 
@@ -92,11 +88,27 @@ function compileAndPrint() {
       window.OS.teleportTo(0, 0, 0);
     }
 
-    // Reset session log — keep the "back home" entry
     sessionLog = [{
-      title: 'Galaxy Center',
+      title: 'Main Room',
       timestamp: new Date().toLocaleTimeString(),
       coords: '0,0,0'
     }];
-  }, 150);
+  };
+
+  const handleAfterPrint = () => {
+    window.removeEventListener('afterprint', handleAfterPrint);
+    cleanupAfterPrint();
+  };
+
+  window.addEventListener('afterprint', handleAfterPrint, { once: true });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => window.print(), 180);
+    });
+  });
+
+  setTimeout(() => {
+    if (zone.style.display === 'block') cleanupAfterPrint();
+  }, 8000);
 }
