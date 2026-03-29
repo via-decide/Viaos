@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>VIA Spatial OS</title>
 
   <!-- PWA MANIFEST -->
@@ -19,8 +21,10 @@
     /* ── Install Trap — inline to guarantee immediate render ── */
     #install-trap {
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       background: rgba(2, 2, 5, 0.92);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -63,32 +67,36 @@
     #install-trap .ios-hint {
       margin-top: 24px;
       padding: 14px 20px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 14px;
       font-size: 14px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255, 255, 255, 0.5);
       max-width: 280px;
       line-height: 1.5;
     }
 
     .icon-share {
       display: inline-block;
-      width: 20px; height: 20px;
+      width: 20px;
+      height: 20px;
       border: 2px solid currentColor;
       border-radius: 3px;
       position: relative;
       margin: 0 4px;
       vertical-align: middle;
     }
+
     .icon-share::after {
       content: '↑';
       position: absolute;
-      top: -11px; left: 4px;
+      top: -11px;
+      left: 4px;
       font-size: 14px;
       font-weight: bold;
     }
   </style>
 </head>
+
 <body>
 
   <!-- ══════════════════════════════════════════════════════
@@ -141,7 +149,8 @@
   <!-- ══════════════════════════════════════════════════════
        HUD — Conclude Session (top right)
        ══════════════════════════════════════════════════════ -->
-  <button id="btn-conclude-session" class="btn-glitch" title="Compile mission into PDF souvenir">Conclude Mission</button>
+  <button id="btn-conclude-session" class="btn-glitch" title="Compile mission into PDF souvenir">Conclude
+    Mission</button>
 
   <!-- ══════════════════════════════════════════════════════
        SPATIAL MATRIX — 3D Canvas
@@ -174,10 +183,14 @@
   <!-- ══════════════════════════════════════════════════════
        SCRIPTS
        ══════════════════════════════════════════════════════ -->
+  <script src="scripts/ecosystem-data.js"></script>
+  <script src="scripts/window-manager.js"></script>
   <script src="scripts/install-manager.js"></script>
+  <script src="scripts/pattern-tracer.js"></script>
   <script src="scripts/app-registry.js"></script>
   <script src="scripts/spatial-engine.js"></script>
   <script src="scripts/session-compiler.js"></script>
 
 </body>
+
 </html>

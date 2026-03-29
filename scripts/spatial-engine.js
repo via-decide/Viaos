@@ -1,9 +1,37 @@
 /**
- * scripts/spatial-engine.js — v3 8-Way Gesture OS
+ * Copyright 2026 ViaDecide
  *
- * UPGRADE: 8-way angular swipe (N, S, E, W, NE, NW, SE, SW),
- *          minimalist UX (no zoom/buttons), pattern-based discovery.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+/**
+ * scripts/spatial-engine.js — v4 Ecosystem Master
+ *
+ * UPGRADE: Macro-Routing (ViaDecide Ecosystem), Master Key Sigil,
+ *          and Split-Screen Micro-Tool Launching.
+ */
+
+const MACRO_REGISTRY = {
+  [window.masterKeySigil]: "root",
+  "0,-1|0,0|0,1": "decision-core",      // Vertical Center
+  "-1,0|0,0|1,0": "code-nexus",         // Horizontal Center
+  "-1,-1|0,0|1,1": "orchard-engine",     // Diagonal 1
+  "1,-1|0,0|-1,1": "logic-academy",     // Diagonal 2
+  "-1,-1|0,-1|1,-1": "creator-forge",   // Top Row
+  "-1,1|0,1|1,1": "research-matrix",    // Bottom Row
+  "-1,-1|-1,0|-1,1": "utility-subsystem", // Left Col
+  "1,-1|1,0|1,1": "meta-synthesis"       // Right Col
+};
 
 // =============================================================================
 // PROCEDURAL ROOM ENGINE — Infinite Deterministic Generation
@@ -22,8 +50,8 @@ class ProceduralRoomEngine {
 
     let hash = 0;
     for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-      hash |= 0;
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        hash |= 0;
     }
     hash = Math.abs(hash);
     
@@ -31,7 +59,6 @@ class ProceduralRoomEngine {
     const dept = this.departments[(hash * 7) % this.departments.length];
     const desc = this.descriptors[(hash * 11) % this.descriptors.length];
 
-    // Z depth derived from pattern complexity (length) if not overridden
     let z = overrideZ;
     if (z === null) {
       z = 0;
@@ -57,61 +84,125 @@ const RoomMatrix = new ProceduralRoomEngine();
 // =============================================================================
 class SpatialMatrix {
   constructor() {
-    this.windowManager = document.getElementById('window-manager');
     this.roomName  = document.getElementById('hud-room-name');
     this.roomDesc  = document.getElementById('hud-room-desc');
 
-    // 3D global OS state
     this.currentSeed = '0,0';
     this.currentZ = 0;
 
-    this.attachDelegatedListeners();
-    this.attachWarpListener();
+    this.attachEventListeners();
+    this.initGravityDrop();
     
     // Spawn initial OS Nexus window
     const room = RoomMatrix.getRoom(this.currentSeed, this.currentZ);
-    this.spawnWindow(room, this.currentSeed);
+    window.WM.spawnWindow(room, this.currentSeed);
     this.updateHUD(room);
   }
 
-  attachWarpListener() {
+  attachEventListeners() {
     window.addEventListener('os:pattern_locked', (e) => {
-      if (e.detail && e.detail.seed) {
-        this.handleWarpGate(e.detail.seed);
+      if (e.detail && e.detail.seed) this.handleWarpGate(e.detail.seed);
+    });
+
+    window.addEventListener('os:macro_nav', (e) => {
+      const fakeSeed = Object.keys(MACRO_REGISTRY).find(k => MACRO_REGISTRY[k] === e.detail.zoneId);
+      if (fakeSeed) this.handleWarpGate(fakeSeed);
+    });
+
+    window.addEventListener('os:render_node', (e) => {
+      this.renderNodeContent(e.detail.node, e.detail.seed, e.detail.z);
+    });
+  }
+
+  initGravityDrop() {
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; });
+    document.addEventListener('touchend', (e) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = touchEndY - touchStartY;
+
+      // Scroll Guard: Only trigger if not scrolling a window body
+      const scrollTarget = e.target.closest('.window-body');
+      const isScrollingWindow = scrollTarget && scrollTarget.scrollTop > 0;
+
+      if (deltaY > 150 && !isScrollingWindow) {
+        this.handleGravityDrop();
       }
     });
   }
 
+  handleGravityDrop() {
+    // Gravity Drop: Compile session into report
+    const concludeBtn = document.getElementById('btn-conclude-session');
+    if (concludeBtn) concludeBtn.click();
+  }
+
   async handleWarpGate(seed) {
+    // ─── INTERCEPT: Brand Sigil Recognition ───
+    if (seed === window.masterKeySigil) {
+      console.log("%c [VIA OS] Root Signature Recognized. Welcome, Architect.", "color: #ff671f; font-weight: bold; font-size: 1.2rem;");
+      
+      if (window.patternTracer) {
+        await window.patternTracer.triggerSigilFlash();
+      }
+
+      this.currentZ = -99;
+      this.currentSeed = seed;
+      
+      const vaultRoom = { 
+        id: 'developer-vault',
+        name: "[∞, ∞] Dharam Daxini / classified logs", 
+        lore: "Proprietary root level access. System authorship verified.",
+        z: -99 
+      };
+
+      const vaultWin = window.WM.spawnWindow(vaultRoom, seed);
+      const body = vaultWin.querySelector('.window-body');
+      body.innerHTML = `<iframe src="./tools/developer-vault/index.html" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
+      
+      this.updateHUD(vaultRoom);
+      this.dispatchNodeChanged(vaultRoom);
+      return;
+    }
+
     this.currentSeed = seed;
 
     // ─── 1. INTERCEPT: Glyph Launcher Deep Links ───
     const glyphIntent = window.GlyphRegistry ? window.GlyphRegistry[seed] : null;
 
     if (glyphIntent) {
-      // Spawn temporary handoff window
-      const tempWin = this.spawnWindow({ title: glyphIntent.name, z: 0 }, seed, true);
-
-      // Execute Native Action
+      const tempWin = window.WM.spawnWindow({ title: glyphIntent.name, z: 0 }, seed, true);
       if (glyphIntent.action === "link") {
         window.location.href = glyphIntent.link;
         setTimeout(() => { window.location.href = glyphIntent.fallback; }, 1500);
-      } 
-      else if (glyphIntent.action === "file_picker") {
+      } else if (glyphIntent.action === "file_picker") {
         const filePicker = document.getElementById('native-file-picker');
         if (filePicker) filePicker.click();
-        
         setTimeout(() => { tempWin.remove(); }, 800);
       }
       return; 
     }
 
-    // ─── 2. INTERNAL: Procedural Infinite Spatial Skyscraper ───
-    
+    // ─── 2. INTERCEPT: Macro Ecosystem Routing ───
+    const zoneId = MACRO_REGISTRY[seed];
+    const zone = zoneId === 'root' 
+      ? { id: 'root', name: "ViaDecide Root", lore: "The master control nexus for all ecosystem tools.", tools: [] }
+      : (window.ZONES ? window.ZONES.find(z => z.id === zoneId) : null);
+
+    if (zone) {
+      this.currentZ = 0;
+      const room = { title: zone.name, desc: zone.lore, z: 0, tools: zone.tools, zoneId: zone.id };
+      window.WM.spawnWindow(room, seed);
+      this.updateHUD(room);
+      this.dispatchNodeChanged(room);
+      return;
+    }
+
+    // ─── 3. INTERNAL: Procedural Infinite Spatial Skyscraper ───
     const room = RoomMatrix.getRoom(seed);
     this.currentZ = room.z;
 
-    this.spawnWindow(room, seed);
+    window.WM.spawnWindow(room, seed);
     this.updateHUD(room);
     this.dispatchNodeChanged(room);
   }
@@ -123,111 +214,60 @@ class SpatialMatrix {
   }
 
   renderNodeContent(node, seed, z) {
-    const room = RoomMatrix.getRoom(seed, z);
+    const zoneId = MACRO_REGISTRY[seed];
+    const zone = zoneId === 'root' 
+      ? { id: 'root', name: "ViaDecide Root", lore: "The master control nexus for all ecosystem tools.", tools: [] }
+      : (window.ZONES ? window.ZONES.find(z => z.id === zoneId) : null);
+
+    const room = zone ? { title: zone.name, z: 0, tools: zone.tools, zoneId: zone.id } : RoomMatrix.getRoom(seed, z);
     if (!room) return;
 
-    let html = `<h2>${room.title}</h2><div id="room-environment" class="node-grid">`;
-
-    // hash to generate dummy nodes based on seed
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-      hash |= 0;
-    }
-    hash = Math.abs(hash);
+    let html = `<h2>${room.title}</h2>`;
     
-    // Always provide ascend/descend nodes based on formal spec rules
-    if (z <= 0) {
-      html += `<button class="access-node depth-descend" data-delta="-1">[ DECRYPT : SUB-LEVEL ${Math.abs(z - 1)} ]</button>`;
-    }
-    if (z < 0) {
-      html += `<button class="access-node depth-ascend" data-delta="1">[ AIRLOCK : RETURN TO Z-${z + 1} ]</button>`;
-    }
-
-    // Add dummy active nodes to make the room feel operational (1 to 3)
-    const dummyCount = (hash % 3) + 1;
-    const dummyTasks = ["EXTRACT LOGS", "SYSTEM SCAN", "SYNC TERMINAL", "BYPASS PROTOCOL", "MONITOR FEED", "DIAGNOSTIC"];
-    
-    for (let i = 0; i < dummyCount; i++) {
-        const tIndex = (hash + i * 5) % dummyTasks.length;
-        html += `<button class="access-node dummy-node">[ ${dummyTasks[tIndex]} ]</button>`;
-    }
-
-    html += `</div>`;
-    node.innerHTML = html;
-  }
-
-  spawnWindow(room, seed, isTemporary = false) {
-    if (!isTemporary && this.windowManager.children.length >= 2) {
-      // Enforce max 2 windows, remove oldest (FIFO)
-      const oldest = this.windowManager.firstElementChild;
-      oldest.style.transform = 'scale(0.9)';
-      oldest.style.opacity = '0';
-      setTimeout(() => oldest.remove(), 300);
-    }
-
-    const win = document.createElement('div');
-    win.className = 'glass-window';
-
-    const header = document.createElement('div');
-    header.className = 'window-header';
-    header.innerHTML = `
-      <span class="header-title">${room.title.toUpperCase()}</span>
-      <span class="header-close-btn" title="Close Window">X</span>
-    `;
-
-    const body = document.createElement('div');
-    body.className = 'window-body';
-    
-    if (isTemporary) {
-      body.innerHTML = `<h2 style="color:var(--matrix-green); text-shadow:0 0 20px var(--matrix-green); border:1px solid var(--matrix-green); padding:20px; text-align:center;">[ INITIATING HANDOFF : ${room.title.toUpperCase()} ]</h2>`;
+    if (zoneId === 'root' && window.ZONES) {
+      html += `<div class="node-grid" style="grid-template-columns: repeat(2, 1fr);">`;
+      window.ZONES.forEach(z => {
+        html += `<button class="access-node macro-node" data-seed="macro" data-zone-id="${z.id}" style="border-color:${z.color || 'var(--matrix-green)'}">[ ${z.name.toUpperCase()} ]</button>`;
+      });
+      html += `</div>`;
     } else {
-      this.renderNodeContent(body, seed, room.z);
-    }
+      html += `<div id="room-environment" class="node-grid">`;
+      if (room.tools && room.tools.length > 0) {
+        room.tools.forEach(tool => {
+          html += `<button class="access-node tool-node" data-zone="${room.zoneId}" data-tool="${tool.id}" title="${tool.desc}">[ ${tool.name.toUpperCase()} ]</button>`;
+        });
+      } else {
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) { hash = ((hash << 5) - hash) + seed.charCodeAt(i); hash |= 0; }
+        hash = Math.abs(hash);
+        
+        if (z <= 0) html += `<button class="access-node depth-descend" data-delta="-1">[ DECRYPT : SUB-LEVEL ${Math.abs(z - 1)} ]</button>`;
+        if (z < 0) html += `<button class="access-node depth-ascend" data-delta="1">[ AIRLOCK : RETURN TO Z-${z + 1} ]</button>`;
 
-    win.appendChild(header);
-    win.appendChild(body);
-    this.windowManager.appendChild(win);
-    
-    return win;
+        const dummyCount = (hash % 3) + 1;
+        const dummyTasks = ["EXTRACT LOGS", "SYSTEM SCAN", "SYNC TERMINAL", "BYPASS PROTOCOL", "MONITOR FEED", "DIAGNOSTIC"];
+        for (let i = 0; i < dummyCount; i++) {
+            const tIndex = (hash + i * 5) % dummyTasks.length;
+            html += `<button class="access-node dummy-node">[ ${dummyTasks[tIndex]} ]</button>`;
+        }
+      }
+      html += `</div>`;
+    }
+    node.innerHTML = html;
+
+    // Attach local listeners for elevator buttons
+    node.querySelectorAll('.depth-ascend, .depth-descend').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const delta = parseInt(btn.getAttribute('data-delta'));
+        this.changeFloor(delta, node, node.closest('.glass-window').querySelector('.header-title'));
+      });
+    });
   }
 
   dispatchNodeChanged(room) {
     window.dispatchEvent(new CustomEvent('os:node_changed', {
-      detail: { 
-        seed: this.currentSeed,
-        z: this.currentZ, 
-        title: room ? room.title : 'Uncharted Sector' 
-      }
+      detail: { seed: this.currentSeed, z: this.currentZ, title: room ? room.title : 'Uncharted Sector' }
     }));
-  }
-
-  // ─── Z-AXIS ELEVATOR (INTERACTIVE DEPTH) ────────────────────────────────────
-
-  attachDelegatedListeners() {
-    this.windowManager.addEventListener('click', (e) => {
-      // 1. Handle Window Close
-      if (e.target.classList.contains('header-close-btn')) {
-        const win = e.target.closest('.glass-window');
-        if (win) {
-          win.style.transform = 'scale(0.9)';
-          win.style.opacity = '0';
-          setTimeout(() => win.remove(), 250);
-        }
-        return;
-      }
-
-      // 2. Handle Sub-Level Dive
-      const target = e.target.closest('.depth-ascend, .depth-descend');
-      if (!target) return;
-      
-      const delta = parseInt(target.getAttribute('data-delta'));
-      if (delta) {
-        const winBody = e.target.closest('.window-body');
-        const headerTitle = e.target.closest('.glass-window').querySelector('.header-title');
-        this.changeFloor(delta, winBody, headerTitle);
-      }
-    });
   }
 
   async changeFloor(delta, windowBody, headerTitle) {
@@ -239,7 +279,6 @@ class SpatialMatrix {
     this.updateHUD(room);
     if (headerTitle) headerTitle.textContent = room.title.toUpperCase();
 
-    // Visual dive within the specific window panel
     windowBody.style.transition = 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
     windowBody.style.opacity = '0';
     windowBody.style.transform = `scale(${delta < 0 ? 1.2 : 0.8})`;
@@ -258,7 +297,7 @@ class SpatialMatrix {
     });
 
     this.dispatchNodeChanged(room);
-    window.dispatchEvent(new CustomEvent('os:floor_changed', { detail: { z: this.currentZ } }));
+    window.dispatchEvent(new CustomEvent('os:floor_changed', { detail: { floor: this.currentZ } }));
   }
 }
 
