@@ -13,9 +13,7 @@ this.macros={
 }
 
 registerNode(id,data){
-
 this.nodes[id]=data
-
 }
 
 connect(a,b){
@@ -31,9 +29,7 @@ this.nodes[a].out.push(b)
 }
 
 export(){
-
 return JSON.stringify(this.nodes,null,2)
-
 }
 
 }
