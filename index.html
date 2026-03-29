@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>VIA Spatial OS</title>
-  
-  <!-- PHASE 1: MANIFEST -->
+
+  <!-- PWA MANIFEST -->
   <link rel="manifest" href="manifest.json">
-  
-  <!-- PHASE 2: APPLE iOS BYPASS -->
+
+  <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#020205">
@@ -16,14 +16,14 @@
   <link rel="stylesheet" href="css/os-core.css">
 
   <style>
-    /* Inline CSS specific to the Install Trap to guarantee immediate render */
+    /* ── Install Trap — inline to guarantee immediate render ── */
     #install-trap {
       position: fixed;
       top: 0; left: 0;
       width: 100vw; height: 100vh;
-      background: rgba(2, 2, 5, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(2, 2, 5, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       z-index: 99999;
       display: flex;
       flex-direction: column;
@@ -36,95 +36,168 @@
       box-sizing: border-box;
     }
 
+    #install-trap .trap-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: rgba(0, 255, 150, 0.7);
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+
     #install-trap h1 {
-      font-size: 24px;
-      margin-bottom: 12px;
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 14px;
       letter-spacing: -0.5px;
     }
 
     #install-trap p {
-      font-size: 16px;
+      font-size: 15px;
       color: #a0a8b8;
-      line-height: 1.5;
+      line-height: 1.6;
       max-width: 300px;
+      margin: 0;
+    }
+
+    #install-trap .ios-hint {
+      margin-top: 24px;
+      padding: 14px 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      max-width: 280px;
+      line-height: 1.5;
     }
 
     .icon-share {
       display: inline-block;
-      width: 24px; height: 24px;
-      border: 2px solid #fff;
-      border-radius: 4px;
+      width: 20px; height: 20px;
+      border: 2px solid currentColor;
+      border-radius: 3px;
       position: relative;
-      margin: 0 6px;
+      margin: 0 4px;
       vertical-align: middle;
     }
     .icon-share::after {
       content: '↑';
       position: absolute;
-      top: -12px; left: 5px;
-      font-size: 16px;
+      top: -11px; left: 4px;
+      font-size: 14px;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-  <!-- PHASE 2: INSTALL TRAP -->
+  <!-- ══════════════════════════════════════════════════════
+       INSTALL TRAP — blocks non-installed browser sessions
+       ══════════════════════════════════════════════════════ -->
   <div id="install-trap">
+    <div class="trap-logo">VIA OS</div>
     <h1>Initialize OS Endpoint</h1>
-    <p>To enter the Spatial Operating System and bypass the browser, tap the <span class="icon-share"></span> <b>Share</b> button below and select <b>Add to Home Screen</b>.</p>
-  </div>
 
-  <script>
-    // Guard Clause: Verify Standalone Execution
-    function checkStandalone() {
-      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
-      const trap = document.getElementById('install-trap');
-      
-      if (isStandaloneMode) {
-        trap.style.display = 'none';
-        trap.remove(); // Unblock OS
-      } else {
-        trap.style.display = 'flex';
-        // The overlay blocks all underlying gestures
-      }
-    }
-    
-    // Check immediately and on lifecycle changes
-    checkStandalone();
-    window.matchMedia('(display-mode: standalone)').addListener(checkStandalone);
-  </script>
+    <!-- PHASE 1: Android Native Install CTA (shown by install-manager.js) -->
+    <button id="btn-install-os" class="btn-glitch">INITIALIZE VIA OS</button>
 
-  <!-- PHASE 3: SPATIAL MATRIX DOM -->
-  <div id="viewport-window">
-    <div id="spatial-canvas">
-      <!-- Coordinate System: [X, Y]. Array mapped to absolute positions -->
-      <!-- Center: [0, 0] -->
-      <div class="os-node" id="node-center" data-x="0" data-y="0">
-        <h2>[0, 0] Home / Agent Commons</h2>
-      </div>
-
-      <!-- Up: [0, -1] -->
-      <div class="os-node" id="node-up" data-x="0" data-y="-1">
-        <h2>[0, -1] Search & Files</h2>
-      </div>
-
-      <!-- Right: [-1, 0] -->
-      <div class="os-node" id="node-right" data-x="-1" data-y="0">
-        <h2>[-1, 0] Media & Movies</h2>
-      </div>
-
-      <!-- Left: [1, 0] -->
-      <div class="os-node" id="node-left" data-x="1" data-y="0">
-        <h2>[1, 0] Games & Logic</h2>
-      </div>
+    <!-- iOS fallback instructions -->
+    <div class="ios-hint">
+      Tap <span class="icon-share"></span> <strong>Share</strong> then select
+      <strong>Add to Home Screen</strong> to enter the Spatial OS.
     </div>
   </div>
 
-  <!-- PHASE 1: HOLOGRAPHIC MINIMAP HUD -->
-  <div id="os-minimap" class="hud-glass"></div>
+  <script>
+    // Verify Standalone Execution — remove trap if already installed
+    (function checkStandalone() {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone ||
+        document.referrer.includes('android-app://');
 
+      const trap = document.getElementById('install-trap');
+      if (isStandalone) {
+        trap.remove();
+      }
+
+      window.matchMedia('(display-mode: standalone)').addListener(() => {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          const t = document.getElementById('install-trap');
+          if (t) t.remove();
+        }
+      });
+    })();
+  </script>
+
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Room Name Panel (top center)
+       ══════════════════════════════════════════════════════ -->
+  <div id="hud-room-name-panel">
+    <div id="hud-room-name">Galaxy Center</div>
+    <div id="hud-room-desc">The main nexus of all operations.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Conclude Session (top right)
+       ══════════════════════════════════════════════════════ -->
+  <button id="btn-conclude-session" title="Compile session into PDF">Conclude Session</button>
+
+  <!-- ══════════════════════════════════════════════════════
+       SPATIAL MATRIX — 3D Canvas
+       Coordinate system: [X, Y, Z]. Z-axis navigated via elevator buttons.
+       ══════════════════════════════════════════════════════ -->
+  <div id="viewport-window">
+    <div id="spatial-canvas">
+
+      <!-- [0, 0] — Z=0: Galaxy Center / Z=-1: Command Core -->
+      <div class="os-node" id="node-center" data-x="0" data-y="0">
+        <h2>Galaxy Center</h2>
+      </div>
+
+      <!-- [0, -1] — Z=0: Observation Deck / Z=-1: Research Archives -->
+      <div class="os-node" id="node-up" data-x="0" data-y="-1">
+        <h2>Observation Deck</h2>
+      </div>
+
+      <!-- [-1, 0] — Z=0: Media Vault (no sub-floor) -->
+      <div class="os-node" id="node-right" data-x="-1" data-y="0">
+        <h2>Media Vault</h2>
+      </div>
+
+      <!-- [1, 0] — Z=0: Simulation Chamber (no sub-floor) -->
+      <div class="os-node" id="node-left" data-x="1" data-y="0">
+        <h2>Simulation Chamber</h2>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Holographic Minimap + Depth Label
+       ══════════════════════════════════════════════════════ -->
+  <div id="os-minimap" class="hud-glass"></div>
+  <div id="hud-depth-label">Surface</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Z-Axis Elevator Buttons (right side)
+       ══════════════════════════════════════════════════════ -->
+  <div id="hud-elevator">
+    <button id="btn-descend" class="elevator-btn">&#x25BC; Descend</button>
+    <button id="btn-ascend"  class="elevator-btn">&#x25B2; Return Up</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       PDF Render Zone — hidden until session compilation
+       ══════════════════════════════════════════════════════ -->
+  <div id="pdf-render-zone"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCRIPTS
+       ══════════════════════════════════════════════════════ -->
+  <script src="scripts/install-manager.js"></script>
   <script src="scripts/spatial-engine.js"></script>
+  <script src="scripts/session-compiler.js"></script>
 
 </body>
 </html>
