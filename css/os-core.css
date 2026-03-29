@@ -25,8 +25,9 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   gap: 10px;
-  height: calc(100vh - 120px);
+  height: 100vh;
   padding: 10px;
+  padding-bottom: 320px; /* CLEARANCE FOR THUMB GRID */
   z-index: 100;
   position: absolute;
   top: 0;
@@ -90,8 +91,8 @@ body {
 }
 
 @keyframes warp-in-panel {
-  0% { transform: scale(0.9); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: scale(0.9); opacity: 0; transform-origin: center bottom; }
+  100% { transform: scale(1); opacity: 1; transform-origin: center bottom; }
 }
 
 .warp-transition {
@@ -183,28 +184,29 @@ body {
    ════════════════════════════════════════════════════════════ */
 #os-minimap {
   position: fixed;
-  bottom: 32px;
+  bottom: calc(env(safe-area-inset-bottom, 20px) + 30px);
   left: 50%;
   transform: translateX(-50%);
-  width: 120px;
-  height: 120px;
+  width: 240px;
+  height: 240px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 8px;
-  padding: 12px;
-  background: rgba(2, 2, 5, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  gap: 16px;
+  padding: 24px;
+  background: rgba(2, 2, 5, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 255, 150, 0.2);
+  border-radius: 32px;
   z-index: 9999;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
 .hud-dot {
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.4);
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   place-self: center;
