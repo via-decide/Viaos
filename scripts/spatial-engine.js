@@ -10,7 +10,7 @@
 // Never expose raw coordinate strings to the user.
 // =============================================================================
 const RoomDictionary = {
-  '0,0,0':   { title: 'Main Room',           desc: 'The main nexus of all operations.' },
+  '0,0,0':   { title: 'Lobby',               desc: 'The main nexus of all operations.' },
   '0,-1,0':  { title: 'Observation Deck',    desc: 'Search & Files wing. Sky-level access.' },
   '-1,0,0':  { title: 'Media Vault',         desc: 'Media & Movies archive. Visual immersion bay.' },
   '1,0,0':   { title: 'Simulation Chamber',  desc: 'Games & Logic arena. Reality sandbox.' },
@@ -45,7 +45,7 @@ class GestureInterceptor {
   }
 
   isScrollableElement(target) {
-    return target.closest('.scroll-area, canvas, [data-no-swipe], .elevator-btn, #btn-conclude-session, #btn-install-os') !== null;
+    return target.closest('.scroll-area, canvas, [data-no-swipe], .elevator-btn, #btn-conclude-mission, #btn-install-os') !== null;
   }
 
   handleTouchStart(e) {
@@ -177,6 +177,7 @@ class SpatialMatrix {
       this.updateAllNodeLabels();
       this.updateZButtons();
       this.dispatchNodeChanged();
+      this.dispatchFloorChanged();
     }
   }
 
@@ -194,6 +195,7 @@ class SpatialMatrix {
       this.updateAllNodeLabels();
       this.updateZButtons();
       this.dispatchNodeChanged();
+      this.dispatchFloorChanged();
     }
   }
 
@@ -332,7 +334,7 @@ class SpatialMatrix {
       // Show depth indicator on minimap
       const depthEl = document.getElementById('hud-depth-label');
       if (depthEl) {
-        depthEl.textContent = z < 0 ? `Floor ${z}` : 'Surface';
+        depthEl.textContent = z < 0 ? `Sub-basement ${Math.abs(z)}` : 'Surface';
         depthEl.style.color = z < 0 ? 'rgba(0,255,150,0.9)' : 'rgba(255,255,255,0.4)';
       }
     });
