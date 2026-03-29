@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>VIA Spatial OS</title>
+  
+  <!-- PHASE 1: MANIFEST -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- PHASE 2: APPLE iOS BYPASS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#020205">
+
+  <link rel="stylesheet" href="css/os-core.css">
+
+  <style>
+    /* Inline CSS specific to the Install Trap to guarantee immediate render */
+    #install-trap {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(2, 2, 5, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      box-sizing: border-box;
+    }
+
+    #install-trap h1 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    #install-trap p {
+      font-size: 16px;
+      color: #a0a8b8;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+
+    .icon-share {
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      position: relative;
+      margin: 0 6px;
+      vertical-align: middle;
+    }
+    .icon-share::after {
+      content: '↑';
+      position: absolute;
+      top: -12px; left: 5px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PHASE 2: INSTALL TRAP -->
+  <div id="install-trap">
+    <h1>Initialize OS Endpoint</h1>
+    <p>To enter the Spatial Operating System and bypass the browser, tap the <span class="icon-share"></span> <b>Share</b> button below and select <b>Add to Home Screen</b>.</p>
+  </div>
+
+  <script>
+    // Guard Clause: Verify Standalone Execution
+    function checkStandalone() {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+      const trap = document.getElementById('install-trap');
+      
+      if (isStandaloneMode) {
+        trap.style.display = 'none';
+        trap.remove(); // Unblock OS
+      } else {
+        trap.style.display = 'flex';
+        // The overlay blocks all underlying gestures
+      }
+    }
+    
+    // Check immediately and on lifecycle changes
+    checkStandalone();
+    window.matchMedia('(display-mode: standalone)').addListener(checkStandalone);
+  </script>
+
+  <!-- PHASE 3: SPATIAL MATRIX DOM -->
+  <div id="viewport-window">
+    <div id="spatial-canvas">
+      <!-- Coordinate System: [X, Y]. Array mapped to absolute positions -->
+      <!-- Center: [0, 0] -->
+      <div class="os-node" id="node-center" data-x="0" data-y="0">
+        <h2>[0, 0] Home / Agent Commons</h2>
+      </div>
+      
+      <!-- Up: [0, -1] -->
+      <div class="os-node" id="node-up" data-x="0" data-y="-1">
+        <h2>[0, -1] Search & Files</h2>
+      </div>
+      
+      <!-- Right: [-1, 0] -->
+      <div class="os-node" id="node-right" data-x="-1" data-y="0">
+        <h2>[-1, 0] Media & Movies</h2>
+      </div>
+      
+      <!-- Left: [1, 0] -->
+      <div class="os-node" id="node-left" data-x="1" data-y="0">
+        <h2>[1, 0] Games & Logic</h2>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/spatial-engine.js"></script>
+
+</body>
+</html>

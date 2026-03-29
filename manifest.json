@@ -1,0 +1,22 @@
+{
+  "name": "VIA OS Matrix",
+  "short_name": "VIA OS",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020205",
+  "theme_color": "#020205",
+  "description": "Spatial Operating System Framework",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
