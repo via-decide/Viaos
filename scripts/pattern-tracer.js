@@ -77,9 +77,13 @@ class PatternTracer {
     this.minimap.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
     this.minimap.addEventListener('touchend', (e) => this.handleEnd(e), { passive: false });
 
-    this.minimap.addEventListener('mousedown', (e) => this.handleStart(e));
+    // Global hooks to allow drawing anywhere
+    window.addEventListener('mousedown', (e) => this.handleStart(e));
     window.addEventListener('mousemove', (e) => this.handleMove(e));
     window.addEventListener('mouseup', (e) => this.handleEnd(e));
+    
+    window.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
+    window.addEventListener('touchend', (e) => this.handleEnd(e), { passive: false });
   }
 
   handleStart(e) {
@@ -131,7 +135,7 @@ class PatternTracer {
         this.updatePath();
         this.resetStyles();
       }
-    }, 600);
+    }, 1500); // 1.5s sustain
   }
 
   async triggerSigilFlash() {
