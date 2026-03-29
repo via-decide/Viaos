@@ -1,4 +1,8 @@
-/* css/os-core.css */
+/* css/os-core.css — VIA Spatial OS v2 */
+
+/* ════════════════════════════════════════════════════════════
+   BASE
+   ════════════════════════════════════════════════════════════ */
 body {
   margin: 0;
   overflow: hidden;
@@ -11,6 +15,9 @@ body {
   touch-action: none;
 }
 
+/* ════════════════════════════════════════════════════════════
+   VIEWPORT & CANVAS
+   ════════════════════════════════════════════════════════════ */
 #viewport-window {
   width: 100vw;
   height: 100vh;
@@ -27,13 +34,25 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  /* Start centered by default. The JS will apply explicit translate immediately. */
-  transform: translate3d(-100vw, -100vh, 0);
-  /* GPU-accelerated snappy physics with cubic-bezier easing for weighty feel */
+  transform: translate3d(-100vw, -100vh, 0) scale(1);
+  transform-origin: 33.33% 33.33%; /* keep viewport center as scale origin */
+  /* X/Y axis: snappy slide — cubic-bezier gives a weighted, physical feel */
   transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
 }
 
+/* Z-axis transitions override — slower, more dramatic scale curve
+   Applied temporarily by JS triggerZTransition() */
+#spatial-canvas.z-transition-descend {
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#spatial-canvas.z-transition-ascend {
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* ════════════════════════════════════════════════════════════
+   OS NODES
+   ════════════════════════════════════════════════════════════ */
 .os-node {
   width: 100vw;
   height: 100vh;
@@ -45,44 +64,63 @@ body {
 }
 
 .os-node h2 {
-  font-weight: 400;
-  letter-spacing: -0.5px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
   color: #e8eaef;
-  font-size: 28px;
-  background: rgba(255,255,255,0.05);
+  font-size: 26px;
+  background: rgba(255, 255, 255, 0.05);
   padding: 16px 32px;
   border-radius: 100px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
-/* Coordinate Physical Placements inside the 300x300 Canvas */
-#node-center {
-  top: 100vh;
-  left: 100vw;
-  /* Home / Agent Commons */
+/* Void node — no room exists at this X/Y for the current Z level */
+.os-node.node-void h2 {
+  opacity: 0.15;
+  filter: blur(3px);
 }
 
-#node-up {
-  top: 0vh;
-  left: 100vw;
-  /* Search & Files */
+/* Node grid positions within the 300vw × 300vh canvas */
+#node-center { top: 100vh; left: 100vw; }
+#node-up     { top: 0vh;   left: 100vw; }
+#node-right  { top: 100vh; left: 200vw; }
+#node-left   { top: 100vh; left: 0vw;   }
+
+/* ════════════════════════════════════════════════════════════
+   HUD — ROOM NAME PANEL (top center)
+   ════════════════════════════════════════════════════════════ */
+#hud-room-name-panel {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1000;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-#node-right {
-  top: 100vh;
-  left: 200vw;
-  /* Media & Movies (X=-1) */
+#hud-room-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: -0.3px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
 }
 
-#node-left {
-  top: 100vh;
-  left: 0vw;
-  /* Games & Logic (X=1) */
+#hud-room-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 4px;
+  letter-spacing: 0.1px;
 }
 
-/* PHASE 1: HOLOGRAPHIC MINIMAP HUD */
+/* ════════════════════════════════════════════════════════════
+   HUD — HOLOGRAPHIC MINIMAP (bottom center)
+   ════════════════════════════════════════════════════════════ */
 #os-minimap {
   position: fixed;
   bottom: 32px;
@@ -109,11 +147,295 @@ body {
   background: rgba(255, 255, 255, 0.4);
   border-radius: 50%;
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  place-self: center;
 }
 
 .hud-dot.active {
   width: 8px;
   height: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 8px rgba(0, 255, 100, 0.8);
+}
+
+/* Depth label below minimap */
+#hud-depth-label {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  z-index: 1001;
+  transition: color 0.3s ease;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════
+   HUD — Z-AXIS ELEVATOR BUTTONS (right side)
+   ════════════════════════════════════════════════════════════ */
+#hud-elevator {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.elevator-btn {
+  display: none; /* shown/hidden by spatial-engine.js */
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 11px 18px;
+  background: rgba(0, 255, 150, 0.10);
+  border: 1px solid rgba(0, 255, 150, 0.35);
+  color: rgba(0, 255, 150, 1);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border-radius: 100px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 0 18px rgba(0, 255, 150, 0.15);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.elevator-btn:hover {
+  background: rgba(0, 255, 150, 0.18);
+  box-shadow: 0 0 28px rgba(0, 255, 150, 0.3);
+}
+
+.elevator-btn:active {
+  transform: scale(0.95);
+}
+
+/* ════════════════════════════════════════════════════════════
+   HUD — CONCLUDE SESSION (top right)
+   ════════════════════════════════════════════════════════════ */
+#btn-conclude-session {
+  position: fixed;
+  top: 20px;
+  right: 16px;
+  background: rgba(255, 90, 70, 0.12);
+  border: 1px solid rgba(255, 90, 70, 0.4);
+  color: rgba(255, 110, 90, 1);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 9px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1000;
+  transition: background 0.2s ease, transform 0.1s ease;
+  text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#btn-conclude-session:hover {
+  background: rgba(255, 90, 70, 0.22);
+}
+
+#btn-conclude-session:active {
+  transform: scale(0.95);
+}
+
+/* ════════════════════════════════════════════════════════════
+   INSTALL CTA — .btn-glitch (inside install trap)
+   ════════════════════════════════════════════════════════════ */
+.btn-glitch {
+  display: none; /* shown by install-manager.js on beforeinstallprompt */
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 18px 40px;
+  background: rgba(0, 255, 150, 0.08);
+  border: 1px solid rgba(0, 255, 150, 0.5);
+  color: #00ff96;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  border-radius: 100px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 24px rgba(0, 255, 150, 0.2);
+  animation: glitch-idle 4s infinite;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-glitch:active {
+  transform: scale(0.97);
+  background: rgba(0, 255, 150, 0.18);
+}
+
+@keyframes glitch-idle {
+  0%, 88%, 100% {
+    box-shadow: 0 0 24px rgba(0, 255, 150, 0.25);
+    text-shadow: none;
+  }
+  90% {
+    text-shadow: -2px 0 #ff00ea, 2px 0 #00eaff;
+    box-shadow: 0 0 36px rgba(0, 255, 150, 0.55);
+  }
+  92% {
+    text-shadow: 2px 0 #ff00ea, -2px 0 #00eaff;
+  }
+  94% {
+    text-shadow: -1px 0 #00eaff;
+  }
+  96% {
+    text-shadow: none;
+    box-shadow: 0 0 24px rgba(0, 255, 150, 0.25);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   PDF RENDER ZONE
+   Hidden overlay; shown during window.print() call.
+   ════════════════════════════════════════════════════════════ */
+#pdf-render-zone {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #ffffff;
+  color: #111111;
+  z-index: 999999;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 48px 40px;
+  box-sizing: border-box;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.pdf-page {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.pdf-logo {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  color: #111;
+  margin-bottom: 10px;
+}
+
+.pdf-page h1 {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.pdf-date {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.pdf-page hr {
+  border: none;
+  border-top: 2px solid #111;
+  margin: 24px 0;
+}
+
+.pdf-body h2 {
+  font-size: 20px;
+  margin: 0 0 6px;
+  color: #222;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.pdf-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.traversal-log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.traversal-log li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eeeeee;
+  font-size: 15px;
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.log-index {
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 600;
+  min-width: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-time {
+  color: #999;
+  font-size: 13px;
+}
+
+.pdf-footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+  font-size: 12px;
+  color: #aaa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.8;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PRINT MEDIA — hide the OS UI, show only the PDF zone
+   ════════════════════════════════════════════════════════════ */
+@media print {
+  body > *:not(#pdf-render-zone) {
+    display: none !important;
+  }
+
+  #pdf-render-zone {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 20px !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .pdf-page {
+    max-width: 100%;
+  }
+
+  .traversal-log li {
+    page-break-inside: avoid;
+  }
 }
