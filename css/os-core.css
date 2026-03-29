@@ -529,3 +529,21 @@ body::after {
   z-index: 10000;
   pointer-events: none;
 }
+.debug-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(2, 2, 5, 0.9);
+  color: #00ff88;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 10px;
+  z-index: 100000;
+  pointer-events: none;
+  border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
+}

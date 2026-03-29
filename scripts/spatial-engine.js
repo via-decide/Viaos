@@ -137,10 +137,46 @@ class SpatialMatrix {
     if (concludeBtn) concludeBtn.click();
   }
 
+  updateDiagnostics(seed, routeType, action) {
+    const diag = document.getElementById('os-diagnostics');
+    if (!diag) return;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    diag.innerHTML = `
+      <div>[PWA STATUS: ${isStandalone ? 'INSTALLED' : 'BROWSER'}]</div>
+      <div>[SEED: ${seed}]</div>
+      <div>[ROUTE: ${routeType}]</div>
+      <div style="color:#fff;">[ACTION: ${action}]</div>
+      <div style="font-size:8px; color:rgba(255,255,255,0.3); margin-top:4px;">${new Date().toLocaleTimeString()}</div>
+    `;
+  }
+
+  initDiagnosticToggle() {
+    let tapCount = 0;
+    let lastTapTime = 0;
+    document.addEventListener('click', (e) => {
+      if (e.clientX < 60 && e.clientY < 60) {
+        const now = Date.now();
+        if (now - lastTapTime < 600) {
+          tapCount++;
+        } else {
+          tapCount = 1;
+        }
+        lastTapTime = now;
+        if (tapCount >= 3) {
+          const diag = document.getElementById('os-diagnostics');
+          if (diag) diag.style.display = diag.style.display === 'none' ? 'block' : 'none';
+          tapCount = 0;
+        }
+      }
+    });
+  }
+
   async handleWarpGate(seed) {
+    this.updateDiagnostics(seed, 'INCOMING', 'Evaluating waterfall...');
+
     // ─── STEP A: Brand Master Key (Root Access) ───
     if (seed === window.masterKeySigil) {
-      console.log("%c [VIA OS] Root Signature Recognized. Welcome, Architect.", "color: #ff671f; font-weight: bold; font-size: 1.2rem;");
+      this.updateDiagnostics(seed, 'MASTER_SIGIL', 'Unlocked Dev Console');
       if (window.patternTracer) await window.patternTracer.triggerSigilFlash();
 
       this.currentZ = -99;
@@ -164,7 +200,7 @@ class SpatialMatrix {
     // ─── STEP B: Deep Link App Registry (Native Hardware Apps) ───
     const nativeApp = window.AppRegistry ? window.AppRegistry[seed] : null;
     if (nativeApp) {
-      console.log(`[VIA OS] Launching Native App: ${nativeApp}`);
+      this.updateDiagnostics(seed, 'DEEP_LINK', `Launched: ${nativeApp}`);
       window.location.href = nativeApp;
       return; // HARD STOP
     }
@@ -172,7 +208,7 @@ class SpatialMatrix {
     // ─── STEP C: Fractal Navigation (2-Dot Center Out) ───
     if (seed === "1,1|0,0" || seed === "0,0|1,1" || seed.length === 7) { 
       // Example 2-dot logic placeholder
-      console.log("[VIA OS] Fractal Zoom Triggered");
+      this.updateDiagnostics(seed, 'FRACTAL_NAV', 'Executing Spatial Zoom');
       // Execute zoom logic here...
     }
 
@@ -185,6 +221,7 @@ class SpatialMatrix {
       : (window.ZONES ? window.ZONES.find(z => z.id === zoneId) : null);
 
     if (zone) {
+      this.updateDiagnostics(seed, 'MACRO_ZONE', `Routing to: ${zone.name}`);
       this.currentZ = 0;
       const room = { title: zone.name, desc: zone.lore, z: 0, tools: zone.tools, zoneId: zone.id };
       window.WM.spawnWindow(room, seed);
@@ -194,6 +231,7 @@ class SpatialMatrix {
     }
 
     // ─── STEP E: Procedural Fallback (The Uncharted Tower) ───
+    this.updateDiagnostics(seed, 'PROCEDURAL', 'Generated Uncharted Room');
     const room = RoomMatrix.getRoom(seed);
     this.currentZ = room.z;
     window.WM.spawnWindow(room, seed);
@@ -295,4 +333,7 @@ class SpatialMatrix {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => { window.OS = new SpatialMatrix(); });
+document.addEventListener('DOMContentLoaded', () => { 
+  window.OS = new SpatialMatrix(); 
+  window.OS.initDiagnosticToggle();
+});
