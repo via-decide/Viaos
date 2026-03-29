@@ -452,6 +452,30 @@
     minimap.addEventListener('touchmove', e => { e.preventDefault(); if (isTracing) handleTouch(e); });
     minimap.addEventListener('touchend', e => { e.preventDefault(); isTracing = false; drawSVG(); processPattern(); });
 
+    // Mouse aliases — Desktop + Chrome DevTools mobile emulator support
+    function handleMouse(e) {
+      const mapRect = minimap.getBoundingClientRect();
+      const x = e.clientX - mapRect.left;
+      const y = e.clientY - mapRect.top;
+      const col = Math.floor((x / mapRect.width) * 3);
+      const row = Math.floor((y / mapRect.height) * 3);
+      if (col >= 0 && col <= 2 && row >= 0 && row <= 2) {
+        const idx = row * 3 + col;
+        if (path.length === 0 || path[path.length - 1] !== idx) {
+          path.push(idx);
+          document.getElementById(`dot-${idx}`).classList.add('active');
+          if (navigator.vibrate) navigator.vibrate(15);
+        }
+      }
+      let pts = path.map(i => { let c = getDotCenter(i); return `${c.x},${c.y}`; });
+      if (isTracing) pts.push(`${x},${y}`);
+      svgLine.setAttribute('points', pts.join(' '));
+    }
+    minimap.addEventListener('mousedown', e => { isTracing = true; path = []; document.querySelectorAll('.dot').forEach(d => d.classList.remove('active')); handleMouse(e); });
+    minimap.addEventListener('mousemove', e => { if (isTracing) handleMouse(e); });
+    minimap.addEventListener('mouseup', () => { isTracing = false; drawSVG(); processPattern(); });
+    minimap.addEventListener('mouseleave', () => { if (isTracing) { isTracing = false; drawSVG(); processPattern(); } });
+
     /* =========================================================
        6. THE STRICT WATERFALL ROUTING ENGINE
        ========================================================= */
