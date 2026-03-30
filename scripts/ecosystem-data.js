@@ -102,8 +102,15 @@ window.ZONES = [
     ]
   }
 ];
-window.AppRegistry = {
-  "0,0|1,0|2,0": "whatsapp://send",
-  "0,1|1,1|2,1": "spotify://",
-  "0,2|1,2|2,2": "vnd.youtube://"
+window.ROOT_GALAXY = {
+  // Node 2 (Top Right): Alchemist
+  "2": { name: "Alchemist", lore: "Swipe-based chemistry crucible.", color: "#ff671f" },
+  // Node 3 (Center Left): Viaco 
+  "3": { name: "Viaco", lore: "AI Agent Business Hub.", color: "#00e676" },
+  // Node 4 (Center Tap): The Forge (App Binder)
+  "4": { name: "The Forge", lore: "Bind new applications to the matrix.", color: "#a78bfa" },
+  // Node 6 (Bottom Left): Kutch Automation
+  "6": { name: "Kutch Automation", lore: "Excel/VBA Local Requests.", color: "#ff4444" },
+  // Node 8 (Bottom Right): SkillHex
+  "8": { name: "SkillHex", lore: "Operations Console.", color: "#00d1ff" }
 };

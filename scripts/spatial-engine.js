@@ -197,21 +197,18 @@ class SpatialMatrix {
       return; // HARD STOP
     }
 
-    // ─── STEP B: Deep Link App Registry (Native Hardware Apps) ───
-    const nativeApp = window.AppRegistry ? window.AppRegistry[seed] : null;
-    if (nativeApp) {
-      this.updateDiagnostics(seed, 'DEEP_LINK', `Launched: ${nativeApp}`);
-      window.location.href = nativeApp;
-      return; // HARD STOP
+    // ─── STEP B: App Registry (Auto-Wired Local Apps) ───
+    const app = window.UserRegistry ? window.UserRegistry.get(seed) : null;
+    if (app) {
+      this.updateDiagnostics(seed, 'VIA_APP', `Launching: ${app.name}`);
+      const appWin = window.WM.spawnWindow({ title: app.name, z: 0 }, seed);
+      const body = appWin.querySelector('.window-body');
+      body.innerHTML = `<iframe src="${app.url}" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
+      this.dispatchNodeChanged(app);
+      return; 
     }
 
-    // ─── STEP C: Fractal Navigation (2-Dot Center Out) ───
-    if (seed === "1,1|0,0" || seed === "0,0|1,1" || seed.length === 7) { 
-      // Example 2-dot logic placeholder
-      this.updateDiagnostics(seed, 'FRACTAL_NAV', 'Executing Spatial Zoom');
-      // Execute zoom logic here...
-    }
-
+    // ─── STEP C: Procedural & Macro Ecosystem ───
     this.currentSeed = seed;
 
     // ─── STEP D: Macro Ecosystem Routing ───
@@ -230,7 +227,7 @@ class SpatialMatrix {
       return; // HARD STOP
     }
 
-    // ─── STEP E: Procedural Fallback (The Uncharted Tower) ───
+    // ─── STEP E: Procedural Fallback ───
     this.updateDiagnostics(seed, 'PROCEDURAL', 'Generated Uncharted Room');
     const room = RoomMatrix.getRoom(seed);
     this.currentZ = room.z;
@@ -256,44 +253,80 @@ class SpatialMatrix {
 
     let html = `<h2>${room.title}</h2>`;
     
-    if (zoneId === 'root' && window.ZONES) {
+    // Inject ROOT_GALAXY nodes if in the Nexus
+    if (seed === '0,0' && window.ROOT_GALAXY) {
+      html += `<div class="node-grid" style="grid-template-columns: repeat(3, 1fr);">`;
+      [0,1,2,3,4,5,6,7,8].forEach(id => {
+        const nodeData = window.ROOT_GALAXY[id];
+        if (nodeData) {
+          html += `<button class="access-node galaxy-node" data-node="${id}" style="border-color:${nodeData.color}">${nodeData.name.toUpperCase()}<br><small style="color:${nodeData.color}">${nodeData.lore}</small></button>`;
+        } else {
+          html += `<div class="node-empty">#${id}</div>`;
+        }
+      });
+      html += `</div>`;
+    } else if (zoneId === 'root' && window.ZONES) {
       html += `<div class="node-grid" style="grid-template-columns: repeat(2, 1fr);">`;
       window.ZONES.forEach(z => {
         html += `<button class="access-node macro-node" data-seed="macro" data-zone-id="${z.id}" style="border-color:${z.color || 'var(--matrix-green)'}">[ ${z.name.toUpperCase()} ]</button>`;
       });
       html += `</div>`;
     } else {
+      // Standard room tools or procedural content
       html += `<div id="room-environment" class="node-grid">`;
       if (room.tools && room.tools.length > 0) {
         room.tools.forEach(tool => {
           html += `<button class="access-node tool-node" data-zone="${room.zoneId}" data-tool="${tool.id}" title="${tool.desc}">[ ${tool.name.toUpperCase()} ]</button>`;
         });
       } else {
-        let hash = 0;
-        for (let i = 0; i < seed.length; i++) { hash = ((hash << 5) - hash) + seed.charCodeAt(i); hash |= 0; }
-        hash = Math.abs(hash);
-        
+        // Procedural Elevator Buttons
         if (z <= 0) html += `<button class="access-node depth-descend" data-delta="-1">[ DECRYPT : SUB-LEVEL ${Math.abs(z - 1)} ]</button>`;
         if (z < 0) html += `<button class="access-node depth-ascend" data-delta="1">[ AIRLOCK : RETURN TO Z-${z + 1} ]</button>`;
-
-        const dummyCount = (hash % 3) + 1;
-        const dummyTasks = ["EXTRACT LOGS", "SYSTEM SCAN", "SYNC TERMINAL", "BYPASS PROTOCOL", "MONITOR FEED", "DIAGNOSTIC"];
-        for (let i = 0; i < dummyCount; i++) {
-            const tIndex = (hash + i * 5) % dummyTasks.length;
-            html += `<button class="access-node dummy-node">[ ${dummyTasks[tIndex]} ]</button>`;
-        }
       }
       html += `</div>`;
     }
     node.innerHTML = html;
 
-    // Attach local listeners for elevator buttons
+    // Attach THE FORGE Logic if it's node #4
+    const forgeBtn = node.querySelector('.galaxy-node[data-node="4"]');
+    if (forgeBtn) {
+       forgeBtn.onclick = () => this.renderForgeOverlay(node);
+    }
+
+    // Elevator listeners
     node.querySelectorAll('.depth-ascend, .depth-descend').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const delta = parseInt(btn.getAttribute('data-delta'));
-        this.changeFloor(delta, node, node.closest('.glass-window').querySelector('.header-title'));
-      });
+      btn.addEventListener('click', () => this.changeFloor(parseInt(btn.getAttribute('data-delta')), node, node.closest('.glass-window').querySelector('.header-title')));
     });
+  }
+
+  renderForgeOverlay(node) {
+    node.innerHTML = `
+      <div class="forge-container" style="padding:20px; background:rgba(255,103,31,0.05); border:1px solid #ff671f; border-radius:12px;">
+        <h3 style="color:#ff671f; margin-bottom:15px;">THE FORGE // App Binder</h3>
+        <p style="font-size:12px; color:#a0a8b8; margin-bottom:20px;">Bind localized paths or URLs to the 3x3 pattern grid.</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+           <input id="forge-name" placeholder="App Name" style="background:#000; border:1px solid #1a1f2a; padding:10px; color:#fff; border-radius:4px;">
+           <input id="forge-url" placeholder="Local Root Path (relative)" style="background:#000; border:1px solid #1a1f2a; padding:10px; color:#fff; border-radius:4px;">
+           <input id="forge-seed" placeholder="Pattern Index (e.g. 0-2-5)" style="background:#000; border:1px solid #1a1f2a; padding:10px; color:#fff; border-radius:4px;">
+           <button id="forge-bind-btn" class="btn-glitch" style="margin-top:10px; padding:12px;">BIND TO MATRIX</button>
+           <button id="forge-cancel" style="background:transparent; border:none; color:var(--text-muted); font-size:11px; margin-top:10px;">CANCEL</button>
+        </div>
+      </div>
+    `;
+
+    node.querySelector('#forge-bind-btn').onclick = () => {
+       const name = node.querySelector('#forge-name').value;
+       const url = node.querySelector('#forge-url').value;
+       const seedText = node.querySelector('#forge-seed').value;
+       
+       if (name && url && seedText) {
+          // Logic to convert 0-2-5 into coordinate pattern... For now mapping as raw seed
+          window.UserRegistry.register(seedText, { name, url, icon: "⚡", lore: "User bound application." });
+          alert(`Success: ${name} bound to pattern: ${seedText}`);
+          this.renderNodeContent(node, '0,0', 0);
+       }
+    };
+    node.querySelector('#forge-cancel').onclick = () => this.renderNodeContent(node, '0,0', 0);
   }
 
   dispatchNodeChanged(room) {
